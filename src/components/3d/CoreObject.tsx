@@ -6,6 +6,10 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 
+/* -------------------------------------------------------
+   PULSAR ORBITAL — PRESERVED
+------------------------------------------------------- */
+
 type OrbitalProps = {
   radius: number;
   rotation: [number, number, number];
@@ -37,7 +41,6 @@ function Orbital({
 
   return (
     <group rotation={rotation}>
-      {/* Orbital trajectory */}
       <mesh>
         <torusGeometry args={[radius, 0.007, 8, 200]} />
         <meshBasicMaterial
@@ -47,7 +50,6 @@ function Orbital({
         />
       </mesh>
 
-      {/* Electron */}
       <mesh ref={electronRef}>
         <sphereGeometry args={[electronSize, 32, 32]} />
         <meshPhysicalMaterial
@@ -60,7 +62,6 @@ function Orbital({
         />
       </mesh>
 
-      {/* Electron luminosity */}
       <pointLight
         ref={glowRef}
         color="#75ffd0"
@@ -71,6 +72,328 @@ function Orbital({
     </group>
   );
 }
+
+/* -------------------------------------------------------
+   GRAVITATIONAL STAR — DEFAULT MODE
+------------------------------------------------------- */
+
+/**
+ * A small moon travelling along a gravitational ring.
+ * Its path is defined by the ring radius, not by a
+ * separate visible orbital line.
+ */
+function RingMoon({
+  ringRadius,
+  speed,
+  phase,
+  size,
+  color,
+}: {
+  ringRadius: number;
+  speed: number;
+  phase: number;
+  size: number;
+  color: string;
+}) {
+  const moonRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    const angle = clock.elapsedTime * speed + phase;
+
+    moonRef.current?.position.set(
+      Math.cos(angle) * ringRadius,
+      Math.sin(angle) * ringRadius,
+      0
+    );
+  });
+
+  return (
+    <group ref={moonRef}>
+      {/* Moon body */}
+      <mesh>
+        <sphereGeometry args={[size, 24, 24]} />
+        <meshPhysicalMaterial
+          color={color}
+          emissive="#8bffd2"
+          emissiveIntensity={1.8}
+          roughness={0.3}
+          metalness={0.12}
+          clearcoat={1}
+        />
+      </mesh>
+
+      {/* Very subtle moon glow */}
+      <pointLight
+        color="#8bffd2"
+        intensity={0.55}
+        distance={0.65}
+        decay={2}
+      />
+    </group>
+  );
+}
+
+/**
+ * A gravitational ring is a luminous distortion band
+ * around the star. Moons travel directly along its plane.
+ */
+function GravitationalRing({
+  radius,
+  rotation,
+  thickness,
+  opacity,
+  speed,
+  moons,
+  color = "#8dffd0",
+}: {
+  radius: number;
+  rotation: [number, number, number];
+  thickness: number;
+  opacity: number;
+  speed: number;
+  moons: {
+    phase: number;
+    speed: number;
+    size: number;
+    color: string;
+  }[];
+  color?: string;
+}) {
+  const ringRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (ringRef.current) {
+      ringRef.current.rotation.z += speed * delta;
+    }
+  });
+
+  return (
+    <group rotation={rotation}>
+      <group ref={ringRef}>
+        {/* Main gravitational band */}
+        <mesh>
+          <torusGeometry args={[radius, thickness, 10, 240]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={opacity}
+            depthWrite={false}
+          />
+        </mesh>
+
+        {/* Moons travelling on the gravitational band */}
+        {moons.map((moon, index) => (
+          <RingMoon
+            key={index}
+            ringRadius={radius}
+            phase={moon.phase}
+            speed={moon.speed}
+            size={moon.size}
+            color={moon.color}
+          />
+        ))}
+      </group>
+    </group>
+  );
+}
+
+/* -------------------------------------------------------
+   THE STAR
+------------------------------------------------------- */
+
+function GravitationalStar() {
+  const starRef = useRef<THREE.Group>(null);
+  const innerGlowRef = useRef<THREE.Mesh>(null);
+  const outerGlowRef = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+
+  useFrame(({ clock }, delta) => {
+    const time = clock.elapsedTime;
+
+    if (starRef.current) {
+      starRef.current.rotation.y += 0.12 * delta;
+      starRef.current.rotation.x =
+        Math.sin(time * 0.35) * 0.035;
+    }
+
+    const pulse = 1 + Math.sin(time * 2.0) * 0.045;
+
+    if (innerGlowRef.current) {
+      innerGlowRef.current.scale.setScalar(pulse);
+    }
+
+    if (outerGlowRef.current) {
+      outerGlowRef.current.scale.setScalar(
+        1 + Math.sin(time * 1.5) * 0.025
+      );
+    }
+
+    if (lightRef.current) {
+      lightRef.current.intensity =
+        5.2 + Math.sin(time * 2.2) * 0.65;
+    }
+  });
+
+  return (
+    <group>
+      {/* Central star */}
+      <group ref={starRef}>
+        {/* Main luminous stellar surface */}
+        <mesh>
+          <sphereGeometry args={[0.46, 96, 96]} />
+          <meshPhysicalMaterial
+            color="#baffdf"
+            emissive="#21e99a"
+            emissiveIntensity={4.5}
+            roughness={0.16}
+            metalness={0.08}
+            clearcoat={1}
+            clearcoatRoughness={0.04}
+          />
+        </mesh>
+
+        {/* Bright inner stellar core */}
+        <mesh>
+          <sphereGeometry args={[0.29, 64, 64]} />
+          <meshBasicMaterial
+            color="#dffff0"
+            transparent
+            opacity={0.34}
+          />
+        </mesh>
+
+        {/* White-hot centre */}
+        <mesh>
+          <sphereGeometry args={[0.13, 48, 48]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      </group>
+
+      {/* Inner luminous atmosphere */}
+      <mesh ref={innerGlowRef}>
+        <sphereGeometry args={[0.72, 64, 64]} />
+        <meshBasicMaterial
+          color="#43ffad"
+          transparent
+          opacity={0.105}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Broad outer stellar halo */}
+      <mesh ref={outerGlowRef}>
+        <sphereGeometry args={[1.05, 64, 64]} />
+        <meshBasicMaterial
+          color="#32e99b"
+          transparent
+          opacity={0.035}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Strong stellar illumination */}
+      <pointLight
+        ref={lightRef}
+        color="#61ffbd"
+        intensity={5.2}
+        distance={6}
+        decay={1.6}
+      />
+
+      {/* Secondary atmospheric light */}
+      <pointLight
+        position={[0.2, 0.3, 0.5]}
+        color="#c4ffe8"
+        intensity={1.4}
+        distance={2.5}
+        decay={2}
+      />
+
+      {/* -------------------------------------------------
+         GRAVITATIONAL RINGS
+
+         Three inclined gravitational bands.
+         Each carries its own small moons.
+      ------------------------------------------------- */}
+
+      {/* Primary ring — closest to the star */}
+      <GravitationalRing
+        radius={0.96}
+        rotation={[Math.PI / 2.3, 0.2, 0.1]}
+        thickness={0.018}
+        opacity={0.58}
+        speed={0.035}
+        moons={[
+          {
+            phase: 0.2,
+            speed: 0.72,
+            size: 0.045,
+            color: "#eafff5",
+          },
+          {
+            phase: Math.PI,
+            speed: 0.72,
+            size: 0.035,
+            color: "#aaffdc",
+          },
+        ]}
+        color="#aaffdc"
+      />
+
+      {/* Secondary ring — inclined gravitational plane */}
+      <GravitationalRing
+        radius={1.27}
+        rotation={[0.85, 0.7, 0.35]}
+        thickness={0.012}
+        opacity={0.40}
+        speed={-0.022}
+        moons={[
+          {
+            phase: 1.1,
+            speed: -0.52,
+            size: 0.05,
+            color: "#dffff0",
+          },
+          {
+            phase: 4.1,
+            speed: -0.52,
+            size: 0.033,
+            color: "#8bffd2",
+          },
+        ]}
+        color="#63eeb5"
+      />
+
+      {/* Outer ring — faint and expansive */}
+      <GravitationalRing
+        radius={1.57}
+        rotation={[-0.7, -0.4, 0.6]}
+        thickness={0.009}
+        opacity={0.25}
+        speed={0.014}
+        moons={[
+          {
+            phase: 2.4,
+            speed: 0.38,
+            size: 0.042,
+            color: "#dffff0",
+          },
+          {
+            phase: 5.1,
+            speed: 0.38,
+            size: 0.03,
+            color: "#aaffdc",
+          },
+        ]}
+        color="#c4ffe8"
+      />
+    </group>
+  );
+}
+
+/* -------------------------------------------------------
+   PULSAR MODE — PRESERVED EXACTLY
+------------------------------------------------------- */
 
 function PulsarCore() {
   const rotatingCoreRef = useRef<THREE.Group>(null);
@@ -177,16 +500,15 @@ function PulsarCore() {
   );
 }
 
+/* -------------------------------------------------------
+   MAIN INTERACTIVE OBJECT
+------------------------------------------------------- */
+
 export default function CoreObject() {
   const [isPulsar, setIsPulsar] = useState(false);
 
-  // User-controlled viewing orientation.
   const dragRef = useRef<THREE.Group>(null);
-
-  // Complete visual assembly.
   const assemblyRef = useRef<THREE.Group>(null);
-
-  // Pulsar orbital system, independently counter-rotating.
   const pulsarOrbitRef = useRef<THREE.Group>(null);
 
   const isDragging = useRef(false);
@@ -307,9 +629,8 @@ export default function CoreObject() {
 
     if (!drag || !assembly) return;
 
-    // Atom = normal size.
-    // Pulsar = medium-sized complete orbital structure.
-    const targetScale = isPulsar ? 0.72 : 1;
+    // Existing mode sizes.
+    const targetScale = isPulsar ? 0.72 : 0.92;
 
     const nextScale = THREE.MathUtils.damp(
       assembly.scale.x,
@@ -320,13 +641,12 @@ export default function CoreObject() {
 
     assembly.scale.setScalar(nextScale);
 
-    // Pulsar orbitals counter-rotate internally.
-    // The complete assembly does NOT rotate automatically.
+    // Existing Pulsar counter-rotation.
     if (isPulsar && pulsarOrbits) {
       pulsarOrbits.rotation.y -= 64 * delta;
     }
 
-    // Apply drag momentum in BOTH modes.
+    // Drag momentum in both modes.
     if (!isDragging.current) {
       drag.rotation.y += velocity.current.y * delta;
       drag.rotation.x += velocity.current.x * delta;
@@ -364,86 +684,22 @@ export default function CoreObject() {
         />
       </mesh>
 
-      {/* Drag rotation */}
+      {/* User-controlled viewing angle */}
       <group ref={dragRef}>
-        {/* Whole atom/pulsar scales together */}
         <group ref={assemblyRef}>
           {!isPulsar ? (
             <>
-              {/* CRYSTALLINE ATOM */}
+              {/* GRAVITATIONAL STAR */}
+              <GravitationalStar />
 
-              <group>
-                {/* Highly transparent nucleus */}
-                <mesh>
-                  <sphereGeometry args={[1.02, 64, 64]} />
-                  <meshPhysicalMaterial
-                    color="#c7f5df"
-                    transparent
-                    opacity={0.22}
-                    transmission={0.78}
-                    thickness={1.5}
-                    ior={1.28}
-                    roughness={0.055}
-                    metalness={0.03}
-                    clearcoat={1}
-                    clearcoatRoughness={0.035}
-                    emissive="#174b3c"
-                    emissiveIntensity={0.28}
-                  />
-                </mesh>
-
-                {/* Delicate crystalline wireframe */}
-                <mesh>
-                  <icosahedronGeometry args={[1.045, 3]} />
-                  <meshBasicMaterial
-                    color="#c4f2df"
-                    wireframe
-                    transparent
-                    opacity={0.22}
-                  />
-                </mesh>
-
-                {/* Inner glass energy layer */}
-                <mesh>
-                  <sphereGeometry args={[0.68, 48, 48]} />
-                  <meshBasicMaterial
-                    color="#75d8ad"
-                    transparent
-                    opacity={0.09}
-                  />
-                </mesh>
-
-                <pointLight
-                  color="#9bffd5"
-                  intensity={1.7}
-                  distance={3}
-                />
-              </group>
-
-              {/* Three intersecting orbital planes */}
-
-              <Orbital
-                radius={1.5}
-                rotation={[Math.PI / 2, 0, 0]}
-                speed={0.8}
-                phase={0}
-                opacity={0.72}
-              />
-
-              <Orbital
-                radius={1.55}
-                rotation={[0.82, 0.72, 0.18]}
-                speed={-0.68}
-                phase={2.1}
-                opacity={0.68}
-              />
-
-              <Orbital
-                radius={1.6}
-                rotation={[-0.82, -0.72, -0.18]}
-                speed={0.56}
-                phase={4.2}
-                opacity={0.68}
+              {/* Sparse surrounding star field */}
+              <Sparkles
+                count={24}
+                scale={[4.5, 4.5, 4.5]}
+                size={1.25}
+                speed={0.07}
+                opacity={0.24}
+                color="#8dffd0"
               />
             </>
           ) : (
@@ -485,7 +741,7 @@ export default function CoreObject() {
         </group>
       </group>
 
-      {/* Background stars, independent of atom rotation */}
+      {/* Background stars */}
       <Sparkles
         count={110}
         scale={[8, 7, 8]}

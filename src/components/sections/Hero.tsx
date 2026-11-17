@@ -47,7 +47,7 @@ export default function Hero() {
         >
           <div className="hero-status">
             <span className="status-dot" />
-            SOFTWARE ENGINEER / SYSTEMS ARCHITECT
+            SOFTWARE ENGINEER / SYSTEMS & AI ARCHITECT
           </div>
 
           <p className="hero-overline">
@@ -136,7 +136,7 @@ export default function Hero() {
         <div className="hero-bottom">
           <div>
             <span className="meta-label">EXPERIENCE</span>
-            <span className="meta-value">07+ YEARS</span>
+            <span className="meta-value">8+ YEARS</span>
           </div>
 
           <div>
