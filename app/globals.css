@@ -241,6 +241,10 @@ a {
   align-items: center;
 }
 
+.hero-visual canvas {
+  background: transparent !important;
+}
+
 .system-scene {
   position: absolute;
   inset: 0;

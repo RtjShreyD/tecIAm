@@ -1,52 +1,48 @@
+
 "use client";
 
-import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import CoreObject from "./CoreObject";
 
 export default function Scene() {
   return (
-    <div className="system-scene">
-      <Canvas
-        camera={{
-          position: [0, 0, 6.2],
-          fov: 42,
-        }}
-        dpr={[1, 1.5]}
-        gl={{
-          antialias: true,
-          alpha: true,
-        }}
-      >
-        <Suspense fallback={null}>
+    <Canvas
+      camera={{
+        position: [0, 5.37, 3.1],
+        fov: 42,
+        near: 0.1,
+        far: 100,
+      }}
+      dpr={[1, 1.5]}
+      gl={{
+        antialias: true,
+        alpha: true,
+      }}
+      style={{
+        background: "transparent",
+      }}
+    >
+      <ambientLight intensity={0.48} />
 
-          {/* Environment lighting */}
+      <directionalLight
+        position={[4, 6, 5]}
+        intensity={1.45}
+        color="#d7fff0"
+      />
 
-          <ambientLight intensity={0.65} />
+      <pointLight
+        position={[-4, 2, -3]}
+        intensity={1.3}
+        color="#58dba7"
+      />
 
-          <pointLight
-            position={[4, 4, 4]}
-            intensity={35}
-            color="#b7ffdb"
-          />
+      <pointLight
+        position={[3, -2, 4]}
+        intensity={0.8}
+        color="#b2f8df"
+      />
 
-          <pointLight
-            position={[-4, -2, 2]}
-            intensity={20}
-            color="#3b9d85"
-          />
-
-          <directionalLight
-            position={[0, 5, 5]}
-            intensity={2}
-          />
-
-          {/* Main 3D object */}
-
-          <CoreObject />
-
-        </Suspense>
-      </Canvas>
-    </div>
+      <CoreObject />
+    </Canvas>
   );
 }
