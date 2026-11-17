@@ -539,7 +539,7 @@ export default function CoreObject() {
     previousMoveTime.current = event.nativeEvent.timeStamp;
     velocity.current = { x: 0, y: 0 };
 
-    event.target.setPointerCapture(event.pointerId);
+    (event.target as Element).setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
@@ -599,7 +599,7 @@ export default function CoreObject() {
     isDragging.current = false;
 
     try {
-      event.target.releasePointerCapture(event.pointerId);
+      (event.target as Element).releasePointerCapture(event.pointerId);
     } catch {
       // Capture may already be released.
     }
@@ -616,7 +616,7 @@ export default function CoreObject() {
     velocity.current = { x: 0, y: 0 };
 
     try {
-      event.target.releasePointerCapture(event.pointerId);
+      (event.target as Element).releasePointerCapture(event.pointerId);
     } catch {
       // Capture may already be released.
     }
